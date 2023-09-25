@@ -1,7 +1,9 @@
 import gymnasium as gym
 import numpy as np
 import time
-
+import matplotlib.pyplot as plt
+from scipy.signal import savgol_filter
+from scipy.interpolate import make_interp_spline
 #Qlearning 智能体
 class QLearning():
     def __init__(self,obs_n , act_n, learning_rate = 0.1, gamma = 0.9, egreed = 0.1):
@@ -68,20 +70,46 @@ def tes_episode(env, agent):
    return total_reward
 
 def main():
-   env = gym.make("CliffWalking-v0", render_mode=None)
-   observation, info = env.reset(seed=42)
-   agent = QLearning(
+    env = gym.make("CliffWalking-v0", render_mode=None)
+    observation, info = env.reset(seed=42)
+    rwlist = []
+    eplist = []
+    agent = QLearning(
            obs_n=env.observation_space.n,
            act_n=env.action_space.n,
            learning_rate=0.1,
            gamma=0.9,
            egreed=0.1)
-   for episode in range(300):
-      ep_reward, ep_steps = run_episode(env, agent, False)
-      print('Episode %s: steps = %s , reward = %.1f' % (episode, ep_steps, ep_reward))
-   env = gym.make("CliffWalking-v0", render_mode="human")
-   observation, info = env.reset(seed=42)
-   tes_episode(env, agent)
+    for episode in range(300):
+        ep_reward, ep_steps = run_episode(env, agent, False)
+        print('Episode %s: steps = %s , reward = %.1f' % (episode, ep_steps, ep_reward))
+        rwlist.append(ep_reward)
+        eplist.append(episode)
+    #画图
+    plt.figure(figsize=(10, 4))
+    #子图1
+    plt.subplot(1, 2, 1)
+    plt.plot(eplist, rwlist, linestyle='-', color='b', label='折线图')
+    plt.title('reward frame')
+
+    #子图2
+    plt.subplot(1, 2, 2)
+
+    # 应用 Savitzky-Golay 平滑滤波器
+    window_length = 10  # 滤波窗口长度
+    polyorder = 3  # 多项式拟合阶数
+    y_smooth = savgol_filter(rwlist, window_length, polyorder)
+
+    plt.plot(eplist, y_smooth,color='b', label='平滑折线图')
+    plt.title('smooth reward frame')
+    plt.suptitle('reward frame')
+    # 显示图形
+    plt.show()
+
+
+    env = gym.make("CliffWalking-v0", render_mode="human")
+    observation, info = env.reset(seed=42)
+    tes_episode(env, agent)
 
 if __name__ == '__main__':
     main()
