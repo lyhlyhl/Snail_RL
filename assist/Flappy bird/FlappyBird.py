@@ -67,11 +67,12 @@ class Mygame():
         self.pipes = pygame.sprite.Group()
         self.old_time = pygame.time.get_ticks()
         self.reward = 0
+        global score
         score = 0
     def render(self):
         pass
 
-    def run(self):
+    def step(self):
         for event in pygame.event.get(): # 鸟的动作
             if event.type == pygame.QUIT:
                 running = False
@@ -96,7 +97,7 @@ class Mygame():
             screen.blit(pipe_pair.image_top, (pipe_pair.x, 0 - pipe_pair.topMove))
             screen.blit(pipe_pair.image_bottom, (pipe_pair.x, 300 - pipe_pair.topMove + pipe_pair.gap))
             if self.bird.rect.colliderect(pipe_pair.rect_top) or self.bird.rect.colliderect(pipe_pair.rect_bottom):
-                return (0, score)
+                return False
         #todo:1.游戏的环境应该怎么写
         #   2.游戏的图像获取作为神经网络的输入
         #   3.如何又训练神经网络又训练
@@ -105,11 +106,6 @@ class Mygame():
         screen.blit(text, (10, 10))  # 显示得分文本的位置
 
         # 游戏逻辑更新
-
         pygame.display.flip()
         clock.tick(FPS)
-        return (1, )
-
-gameEnv = Mygame()
-gameEnv.reset()
-gameEnv.run()
+        return True
