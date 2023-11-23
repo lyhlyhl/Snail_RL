@@ -48,37 +48,46 @@ class PipePair(pygame.sprite.Sprite):
         self.bottomMove = random.randint(0,50)
 
 
-    def update(self,bird):
+    def update(self):
         self.x -= 5
         self.rect_top.topleft = (self.x, 0 - self.topMove)
         self.rect_bottom.topleft = (self.x, 300 - self.topMove + self.gap)
-        if self.x + self.rect_top.width < 0:
-            self.kill()
-        if self.x + self.rect_top.width < bird.rect.left and not self.passed:
-            self.passed = True
-            global score
-            score += 1
 
+#定义游戏环境类，基本上游戏的操作都在这里
 class Mygame():
     def __init__(self):
         self.background_image = pygame.image.load('background.png')
+        self.done = None
     def reset(self):
         self.bird = Bird()
         self.pipes = pygame.sprite.Group()
         self.old_time = pygame.time.get_ticks()
-        self.reward = 0
+        self.done = False
         global score
         score = 0
-    def render(self):
-        pass
+    def reward(self):
+        for pipe in self.pipes:
+            if pipe.x + pipe.rect_top.width < 0:
+                pipe.kill()
+            if pipe.x + pipe.rect_top.width < self.bird.rect.left and not pipe.passed:
+                pipe.passed = True
+                global score
+                score += 1
+                return 20   #如果成功通过柱子reward是+20
+        for pipe_pair in self.pipes:
+            screen.blit(pipe_pair.image_top, (pipe_pair.x, 0 - pipe_pair.topMove))
+            screen.blit(pipe_pair.image_bottom, (pipe_pair.x, 300 - pipe_pair.topMove + pipe_pair.gap))
+            if self.bird.rect.colliderect(pipe_pair.rect_top) or self.bird.rect.colliderect(pipe_pair.rect_bottom):
+                #这一回合结束
+                self.done = True
+                return -100
+        if self.bird.rect.top < 0 or self.bird.rect.bottom > SCREEN_HEIGHT:
+            self.done = True
+            return -100
+        return 0
+
 
     def step(self):
-        for event in pygame.event.get(): # 鸟的动作
-            if event.type == pygame.QUIT:
-                running = False
-            elif event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_SPACE:
-                    self.bird.jump()
         current_time = pygame.time.get_ticks()
         # 添加柱子对
         if current_time - self.old_time > 1500:  # 控制屏幕上同时出现的柱子对数量
@@ -87,20 +96,11 @@ class Mygame():
             self.old_time = current_time
 
         self.bird.update()
-        self.pipes.update(self.bird)
+        self.pipes.update()
 
         # 绘制背景、小鸟和柱子
         screen.blit(self.background_image, (0, 0))
         screen.blit(self.bird.image, self.bird.rect)
-
-        for pipe_pair in self.pipes:
-            screen.blit(pipe_pair.image_top, (pipe_pair.x, 0 - pipe_pair.topMove))
-            screen.blit(pipe_pair.image_bottom, (pipe_pair.x, 300 - pipe_pair.topMove + pipe_pair.gap))
-            if self.bird.rect.colliderect(pipe_pair.rect_top) or self.bird.rect.colliderect(pipe_pair.rect_bottom):
-                return False
-        #todo:1.游戏的环境应该怎么写
-        #   2.游戏的图像获取作为神经网络的输入
-        #   3.如何又训练神经网络又训练
         font = pygame.font.Font(None, 36)  # 设置字体和字号
         text = font.render(f'Score: {score}', True, (0, 0, 0))  # 渲染得分文本
         screen.blit(text, (10, 10))  # 显示得分文本的位置
@@ -108,4 +108,3 @@ class Mygame():
         # 游戏逻辑更新
         pygame.display.flip()
         clock.tick(FPS)
-        return True

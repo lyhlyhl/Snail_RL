@@ -21,19 +21,19 @@ class FlappyBirdEnv(gym.Env):
         return self._get_observation()
 
     def step(self, action):
+        reward = 0
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 self.close()
-
         if action == 1:
             self.game.bird.jump()
-
-        running = self.game.step()
+            reward -= 1
+        self.game.step()
 
         # The observation, reward, done, and info are typical for OpenAI Gym environments.
         observation = self._get_observation()
-        reward = self.game.reward ## 这里有bug 还是有好多东西没写好
-        done = not running
+        reward += self.game.reward()
+        done = self.game.done
         info = {}
 
         return observation, reward, done, info
@@ -52,14 +52,20 @@ class FlappyBirdEnv(gym.Env):
 if __name__ == "__main__":
     env = FlappyBirdEnv()
     state = env.reset()
-
+    totalreward = 0
     while True:
-        action = env.action_space.sample()  # Replace this with your agent's action
+        action = 0 # Replace this with your agent's action
+        #for event in pygame.event.get(): # 鸟的动作
+        #    if event.type == pygame.KEYDOWN:
+        #        if event.key == pygame.K_SPACE:
+        #            action = 1
+        print(action)
         next_state, reward, done, _ = env.step(action)
         env.render()
-
+        totalreward += reward
         if done:
             break
 
     env.close()
+    print(totalreward)
 
