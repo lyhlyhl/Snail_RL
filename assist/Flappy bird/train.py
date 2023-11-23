@@ -1,6 +1,6 @@
 import DQN
 import FlappyBirdEnv
-
+import torch
 env = FlappyBirdEnv.FlappyBirdEnv()
 state = env.reset()
 state_size = env.observation_space.shape[0]
@@ -9,12 +9,12 @@ agent = DQN.DQNAgent(state_size, action_size)
 
 for episode in range(100):
     state = env.reset()
+    #state = torch.FloatTensor(state).unsqueeze(0)
     total_reward = 0
-    state = state[0]
 
     while True:
         action = agent.select_action(state)
-        next_state, reward, done, _ ,_= env.step(action)
+        next_state, reward, done, _  = env.step(action)
         agent.buffer.push(state, action, reward, next_state, done)
         total_reward += reward
 
@@ -35,7 +35,7 @@ total_reward = 0
 while True:
     env.render()
     action = agent.select_action(state)
-    next_state, reward, done, _ , _= env.step(action)
+    next_state, reward, done, _ = env.step(action)
     total_reward += reward
 
     state = next_state

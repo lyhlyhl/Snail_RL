@@ -32,7 +32,7 @@ class FlappyBirdEnv(gym.Env):
 
         # The observation, reward, done, and info are typical for OpenAI Gym environments.
         observation = self._get_observation()
-        reward = self.game.reward
+        reward = self.game.reward ## 这里有bug 还是有好多东西没写好
         done = not running
         info = {}
 

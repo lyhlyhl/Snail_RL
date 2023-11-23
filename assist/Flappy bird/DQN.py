@@ -2,21 +2,27 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import numpy as np
-import gym
 import random
-import FlappyBirdEnv
+import torch.nn.functional as F
+from torchvision import models
 # 定义深度神经网络模型
 class DQN(nn.Module):
-    def __init__(self, input_size, output_size):
+    def __init__(self, input_channels, num_actions):
         super(DQN, self).__init__()
-        self.fc1 = nn.Linear(input_size, 128)
-        self.fc2 = nn.Linear(128, 64)
-        self.fc3 = nn.Linear(64, output_size)
+        self.conv1 = nn.Conv2d(in_channels=input_channels, out_channels=32, kernel_size=8, stride=4)
+        self.conv2 = nn.Conv2d(in_channels=32, out_channels=64, kernel_size=4, stride=2)
+        self.conv3 = nn.Conv2d(in_channels=64, out_channels=64, kernel_size=3, stride=1)
+        self.fc1 = nn.Linear(64 * 16 * 29, 512)  # 假设输入图像大小为224x224
+        self.fc2 = nn.Linear(512, num_actions)
 
     def forward(self, x):
-        x = torch.relu(self.fc1(x))
-        x = torch.relu(self.fc2(x))
-        return self.fc3(x)
+        x = F.relu(self.conv1(x))
+        x = F.relu(self.conv2(x))
+        x = F.relu(self.conv3(x))
+        x = x.view(-1, 64 * 16 * 29)  # 假设输入图像大小为224x224
+        x = F.relu(self.fc1(x))
+        q_values = self.fc2(x)
+        return q_values
 
 # 定义经验回放缓冲区
 class ReplayBuffer:
@@ -57,8 +63,8 @@ class DQNAgent:
             return np.random.choice(self.action_size)
         else:
             with torch.no_grad():
-                state = torch.FloatTensor(state)#.unsqueeze(0)
-
+                state = torch.from_numpy(state).float().unsqueeze(0)
+                print(state.shape)
                 q_values = self.policy_net(state)
                 return q_values.argmax().item()
 
