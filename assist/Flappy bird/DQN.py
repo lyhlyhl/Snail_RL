@@ -6,6 +6,7 @@ import random
 import torch.nn.functional as F
 from torchvision import models
 # 定义深度神经网络模型
+torch.device('cuda')
 class DQN(nn.Module):
     def __init__(self, input_channels, num_actions):
         super(DQN, self).__init__()
@@ -63,13 +64,17 @@ class DQNAgent():
         self.epsilon = epsilon
         self.batch_size = batch_size
 
+        use_gpu = torch.cuda.is_available()
+        print(use_gpu)
         self.policy_net = DQN(state_size, action_size)
         self.target_net = DQN(state_size, action_size)
         self.target_net.load_state_dict(self.policy_net.state_dict())
         self.target_net.eval()
-
         self.optimizer = optim.Adam(self.policy_net.parameters(), lr=lr)
         self.buffer = ReplayBuffer(buffer_capacity)
+        if use_gpu:
+            self.policy_net.cuda()
+            self.target_net.cuda()
 
     def select_action(self, state):
         if np.random.rand() < self.epsilon:
@@ -77,7 +82,6 @@ class DQNAgent():
         else:
             with torch.no_grad():
                 state = torch.from_numpy(state).float().permute(2, 0, 1).unsqueeze(0)
-                print(state.shape)
                 q_values = self.policy_net(state)
                 return q_values.argmax().item()
 
@@ -86,12 +90,11 @@ class DQNAgent():
             return
 
         states, actions, rewards, next_states, dones = self.buffer.sample(self.batch_size)
-        states = torch.FloatTensor(states)
-        print(states.shape)
+        states = torch.FloatTensor(np.array(states))
 
         actions = torch.LongTensor(actions)
         rewards = torch.FloatTensor(rewards)
-        next_states = torch.FloatTensor(next_states)
+        next_states = torch.FloatTensor(np.array(next_states))
         dones = torch.FloatTensor(dones)
 
         q_values = self.policy_net(states).gather(1, actions.unsqueeze(1))

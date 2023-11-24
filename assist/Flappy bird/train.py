@@ -8,7 +8,7 @@ print(env.observation_space.shape)
 action_size = env.action_space.n
 agent = DQN.DQNAgent(state_size, action_size)
 
-for episode in range(100):
+for episode in range(1000):
     state = env.reset()
     total_reward = 0
 
@@ -22,7 +22,8 @@ for episode in range(100):
 
         agent.update_model()
         agent.update_target_network()
-        env.render()
+        if episode > 500:
+            env.render()
         if done:
             break
 
@@ -44,5 +45,5 @@ while True:
         break
 
 print(f"Test Total Reward: {total_reward}")
-
+torch.save(agent.target_net.state_dict(), 'dqn_model.pth')
 env.close()
