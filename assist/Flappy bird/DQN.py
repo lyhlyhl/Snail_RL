@@ -6,7 +6,7 @@ import random
 import torch.nn.functional as F
 from torchvision import models
 # 定义深度神经网络模型
-torch.device('cuda')
+torch.device('cuda:0')
 class DQN(nn.Module):
     def __init__(self, input_channels, num_actions):
         super(DQN, self).__init__()
@@ -18,13 +18,10 @@ class DQN(nn.Module):
         self.pool3 = nn.MaxPool2d(kernel_size=2, stride=2)
 
         # 重新计算全连接层的输入大小
-        conv1_output_size = (16, 128, 72)
-        conv2_output_size = (32, 32, 36)
-        conv3_output_size = (16, 15, 17)
         fc1_input_size = 288
 
-        self.fc1 = nn.Linear(fc1_input_size, 64)
-        self.fc2 = nn.Linear(64, num_actions)
+        self.fc1 = nn.Linear(fc1_input_size, 32)
+        self.fc2 = nn.Linear(32, num_actions)
 
     def forward(self, x):
         x = F.relu(self.conv1(x))
@@ -57,7 +54,7 @@ class ReplayBuffer:
 
 # 定义DQN Agent
 class DQNAgent():
-    def __init__(self, state_size, action_size, gamma=0.99, epsilon=0.1, lr=0.001, buffer_capacity=1000, batch_size=16):
+    def __init__(self, state_size, action_size, gamma=0.95, epsilon=0.20, lr=0.001, buffer_capacity=10000, batch_size=16):
         self.state_size = state_size
         self.action_size = action_size
         self.gamma = gamma
@@ -65,23 +62,23 @@ class DQNAgent():
         self.batch_size = batch_size
 
         use_gpu = torch.cuda.is_available()
-        print(use_gpu)
         self.policy_net = DQN(state_size, action_size)
         self.target_net = DQN(state_size, action_size)
+        if use_gpu:
+            self.policy_net.cuda()
+            self.target_net.cuda()
         self.target_net.load_state_dict(self.policy_net.state_dict())
         self.target_net.eval()
         self.optimizer = optim.Adam(self.policy_net.parameters(), lr=lr)
         self.buffer = ReplayBuffer(buffer_capacity)
-        if use_gpu:
-            self.policy_net.cuda()
-            self.target_net.cuda()
+
 
     def select_action(self, state):
         if np.random.rand() < self.epsilon:
             return np.random.choice(self.action_size)
         else:
             with torch.no_grad():
-                state = torch.from_numpy(state).float().permute(2, 0, 1).unsqueeze(0)
+                state = torch.from_numpy(state).float().permute(2, 0, 1).unsqueeze(0).cuda()
                 q_values = self.policy_net(state)
                 return q_values.argmax().item()
 
@@ -90,12 +87,12 @@ class DQNAgent():
             return
 
         states, actions, rewards, next_states, dones = self.buffer.sample(self.batch_size)
-        states = torch.FloatTensor(np.array(states))
+        states = torch.FloatTensor(np.array(states)).cuda()
 
-        actions = torch.LongTensor(actions)
-        rewards = torch.FloatTensor(rewards)
-        next_states = torch.FloatTensor(np.array(next_states))
-        dones = torch.FloatTensor(dones)
+        actions = torch.LongTensor(actions).cuda()
+        rewards = torch.FloatTensor(rewards).cuda()
+        next_states = torch.FloatTensor(np.array(next_states)).cuda()
+        dones = torch.FloatTensor(dones).cuda()
 
         q_values = self.policy_net(states).gather(1, actions.unsqueeze(1))
 

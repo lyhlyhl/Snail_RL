@@ -24,7 +24,7 @@ class Bird():
         self.velocity = 0
 
     def jump(self):
-        self.velocity = -8
+        self.velocity = -6
 
     def update(self):
         self.velocity += 1
@@ -39,7 +39,7 @@ class PipePair(pygame.sprite.Sprite):
         self.image_bottom = pygame.image.load('resizedpipe_bottom.png')
         self.rect_top = self.image_top.get_rect()
         self.rect_bottom = self.image_bottom.get_rect()
-        self.gap = random.randint(120,180)  # 通道间隙的大小
+        self.gap = random.randint(150,200)  # 通道间隙的大小
         self.x = x
         self.passed = False
 
@@ -52,6 +52,8 @@ class PipePair(pygame.sprite.Sprite):
         self.x -= 5
         self.rect_top.topleft = (self.x, 0 - self.topMove)
         self.rect_bottom.topleft = (self.x, 300 - self.topMove + self.gap)
+        if self.x + self.rect_top.width < 0:
+            self.kill()
 
 #定义游戏环境类，基本上游戏的操作都在这里
 class Mygame():
@@ -67,13 +69,11 @@ class Mygame():
         score = 0
     def reward(self):
         for pipe in self.pipes:
-            if pipe.x + pipe.rect_top.width < 0:
-                pipe.kill()
             if pipe.x + pipe.rect_top.width < self.bird.rect.left and not pipe.passed:
                 pipe.passed = True
                 global score
-                score += 1
-                return 20   #如果成功通过柱子reward是+20
+                score -= 1
+                return 50   #如果成功通过柱子reward是+20
         for pipe_pair in self.pipes:
             screen.blit(pipe_pair.image_top, (pipe_pair.x, 0 - pipe_pair.topMove))
             screen.blit(pipe_pair.image_bottom, (pipe_pair.x, 300 - pipe_pair.topMove + pipe_pair.gap))
@@ -83,19 +83,20 @@ class Mygame():
                 return -100
         if self.bird.rect.top < 0 or self.bird.rect.bottom > SCREEN_HEIGHT:
             self.done = True
-            return -300
+            return -1000
         return 0
 
 
     def step(self):
         current_time = pygame.time.get_ticks()
         # 添加柱子对
-        if current_time - self.old_time > 1720:  # 控制屏幕上同时出现的柱子对数量
+        if current_time - self.old_time > 1600:  # 控制屏幕上同时出现的柱子对数量
             new_pipe = PipePair(SCREEN_WIDTH)
             self.pipes.add(new_pipe)
             self.old_time = current_time
         self.bird.update()
-        self.pipes.update()
+        for pipe in self.pipes:
+            pipe.update()
         # 绘制背景、小鸟和柱子
         screen.blit(self.background_image, (0, 0))
         screen.blit(self.bird.image, self.bird.rect)

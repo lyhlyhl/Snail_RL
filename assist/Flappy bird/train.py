@@ -8,7 +8,7 @@ print(env.observation_space.shape)
 action_size = env.action_space.n
 agent = DQN.DQNAgent(state_size, action_size)
 
-for episode in range(1000):
+for episode in range(10000):
     state = env.reset()
     total_reward = 0
 
@@ -21,12 +21,11 @@ for episode in range(1000):
         state = next_state
 
         agent.update_model()
-        agent.update_target_network()
-        if episode > 500:
-            env.render()
+
+        env.render()
         if done:
             break
-
+    agent.update_target_network()
     print(f"Episode: {episode + 1}, Total Reward: {total_reward}")
 
 # 在训练结束后，你可以使用训练好的模型进行测试
@@ -36,7 +35,6 @@ total_reward = 0
 while True:
     action = agent.select_action(state)
     next_state, reward, done, _ = env.step(action)
-    print(next_state, reward, done)
     env.render()
     total_reward += reward
     state = next_state
